@@ -127,3 +127,16 @@ xss:
   excludes: /system/notice
   # 匹配链接
   urlPatterns: /system/*,/monitor/*,/tool/*
+
+xxl:
+  job:
+    admin:
+      addresses: http://127.0.0.1:8081/xxl-job-admin
+    accessToken: default_token
+    executor:
+      appname: dkd-manage-executor
+      address: ''
+      ip: ''
+      port: 9999
+      logpath: ./logs/xxl-job/jobhandler
+      logretentiondays: 30
