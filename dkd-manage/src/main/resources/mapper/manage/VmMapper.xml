@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dkd.manage.mapper.VmMapper">
+
+    <!-- 数据库列 → Java 字段 的对照表 -->
+    <resultMap type="VM" id="VmResult">
+        <id     property="vmId"           column="vm_id"            />
+        <result property="vmCode"         column="vm_code"          />
+        <result property="nodeId"         column="node_id"          />
+        <result property="status"         column="status"           />
+        <result property="lastSupplyTime" column="last_supply_time" />
+        <result property="createBy"       column="create_by"        />
+        <result property="createTime"     column="create_time"      />
+        <result property="updateBy"       column="update_by"        />
+        <result property="updateTime"     column="update_time"      />
+        <result property="remark"         column="remark"           />
+    </resultMap>
+
+    <!-- 公共查询列，抽出来复用 -->
+    <sql id="selectVmVo">
+        select vm_id, vm_code, node_id, status, last_supply_time,
+               create_by, create_time, update_by, update_time, remark
+        from tb_vm
+    </sql>
+
+    <!-- 列表：VmMapper.findAllVM() 没有参数，所以这里不加动态条件 -->
+    <select id="findAllVM" resultMap="VmResult">
+        <include refid="selectVmVo"/>
+        order by vm_id desc
+    </select>
+
+    <!-- 按主键查一条 -->
+    <select id="findVMById" parameterType="Long" resultMap="VmResult">
+        <include refid="selectVmVo"/>
+        where vm_id = #{vmId}
+    </select>
+
+    <!-- ★ 唯一性校验专用：按设备编号查一条 -->
+    <select id="selectVMByCode" parameterType="String" resultMap="VmResult">
+        <include refid="selectVmVo"/>
+        where vm_code = #{vmCode} limit 1
+    </select>
+
+    <!-- 新增：useGeneratedKeys 把数据库生成的自增主键回填到 vm.vmId -->
+    <insert id="add" parameterType="VM" useGeneratedKeys="true" keyProperty="vmId">
+        insert into tb_vm(
+            <if test="vmCode != null and vmCode != ''">vm_code,</if>
+            <if test="nodeId != null">node_id,</if>
+            <if test="status != null">status,</if>
+            <if test="lastSupplyTime != null">last_supply_time,</if>
+            <if test="createBy != null and createBy != ''">create_by,</if>
+            create_time
+        )values(
+            <if test="vmCode != null and vmCode != ''">#{vmCode},</if>
+            <if test="nodeId != null">#{nodeId},</if>
+            <if test="status != null">#{status},</if>
+            <if test="lastSupplyTime != null">#{lastSupplyTime},</if>
+            <if test="createBy != null and createBy != ''">#{createBy},</if>
+            sysdate()
+        )
+    </insert>
+
+    <!-- 修改：<set> 会自动去掉多余的逗号 -->
+    <update id="update" parameterType="VM">
+        update tb_vm
+        <set>
+            <if test="vmCode != null and vmCode != ''">vm_code = #{vmCode},</if>
+            <if test="nodeId != null">node_id = #{nodeId},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="lastSupplyTime != null">last_supply_time = #{lastSupplyTime},</if>
+            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+            update_time = sysdate()
+        </set>
+        where vm_id = #{vmId}
+    </update>
+
+    <!-- 批量删除：拼成 in (1,2,3) -->
+    <delete id="delete" parameterType="Long">
+        delete from tb_vm where vm_id in
+        <foreach collection="array" item="vmId" open="(" separator="," close=")">
+            #{vmId}
+        </foreach>
+    </delete>
+
+</mapper>

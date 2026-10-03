@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dkd.manage.mapper.ChannelMapper">
+
+    <!-- 数据库列 → Java 字段 的对照表 -->
+    <resultMap type="Channel" id="ChannelResult">
+        <id     property="channelId"   column="channel_id"   />
+        <result property="vmId"        column="vm_id"        />
+        <result property="skuId"       column="sku_id"       />
+        <result property="channelCode" column="channel_code" />
+        <result property="maxCapacity" column="max_capacity" />
+        <result property="stock"       column="stock"        />
+        <result property="threshold"   column="threshold"    />
+        <result property="taskId"      column="task_id"      />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"  column="create_time"  />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"  column="update_time"  />
+        <result property="remark"      column="remark"       />
+    </resultMap>
+
+    <!-- 公共查询列，抽出来复用 -->
+    <sql id="selectChannelVo">
+        select channel_id, vm_id, sku_id, channel_code, max_capacity, stock, threshold, task_id,
+               create_by, create_time, update_by, update_time, remark
+        from tb_channel
+    </sql>
+
+    <!-- 列表：ChannelMapper.findAllChannel() 没有参数，所以这里不加动态条件 -->
+    <select id="findAllChannel" resultMap="ChannelResult">
+        <include refid="selectChannelVo"/>
+        order by channel_id desc
+    </select>
+
+    <!-- 按主键查一条 -->
+    <select id="findChannelById" parameterType="Long" resultMap="ChannelResult">
+        <include refid="selectChannelVo"/>
+        where channel_id = #{channelId}
+    </select>
+
+    <!-- 阶段 3 建单用：查某台设备下的所有货道（缺货判断放在 Java 里做） -->
+    <select id="selectChannelByVmId" parameterType="Long" resultMap="ChannelResult">
+        <include refid="selectChannelVo"/>
+        where vm_id = #{vmId}
+    </select>
+
+    <!-- ★ 阶段 4 自动补货用：查出所有「有货道需要补货」的设备Id（已去重）
+         stock <= threshold   库存低于阈值（缺货）
+         sku_id is not null   货道里放了商品（空货道不用补）
+         distinct vm_id       一台设备多个货道缺货，只建一张工单
+         注意：这里【故意】不加 task_id is null，幂等留到阶段 5
+         注意：返回的是设备Id，所以用 resultType="Long" 而不是 resultMap -->
+    <select id="selectVmIdsWithLowStock" resultType="Long">
+        select distinct vm_id
+        from tb_channel
+        where stock &lt;= threshold
+          and sku_id is not null
+    </select>
+
+    <!-- ★ 唯一性校验专用：对应复合唯一键 uk_vm_channel(vm_id, channel_code)
+         两个参数，靠接口上的 @Param("vmId") / @Param("channelCode") 取名 -->
+    <select id="selectChannelByVmIdAndCode" resultMap="ChannelResult">
+        <include refid="selectChannelVo"/>
+        where vm_id = #{vmId} and channel_code = #{channelCode} limit 1
+    </select>
+
+    <!-- 新增：useGeneratedKeys 把数据库生成的自增主键回填到 channel.channelId -->
+    <insert id="add" parameterType="Channel" useGeneratedKeys="true" keyProperty="channelId">
+        insert into tb_channel(
+            <if test="vmId != null">vm_id,</if>
+            <if test="skuId != null">sku_id,</if>
+            <if test="channelCode != null and channelCode != ''">channel_code,</if>
+            <if test="maxCapacity != null">max_capacity,</if>
+            <if test="stock != null">stock,</if>
+            <if test="threshold != null">threshold,</if>
+            <if test="taskId != null">task_id,</if>
+            <if test="createBy != null and createBy != ''">create_by,</if>
+            create_time
+        )values(
+            <if test="vmId != null">#{vmId},</if>
+            <if test="skuId != null">#{skuId},</if>
+            <if test="channelCode != null and channelCode != ''">#{channelCode},</if>
+            <if test="maxCapacity != null">#{maxCapacity},</if>
+            <if test="stock != null">#{stock},</if>
+            <if test="threshold != null">#{threshold},</if>
+            <if test="taskId != null">#{taskId},</if>
+            <if test="createBy != null and createBy != ''">#{createBy},</if>
+            sysdate()
+        )
+    </insert>
+
+    <!-- 修改：<set> 会自动去掉多余的逗号 -->
+    <update id="update" parameterType="Channel">
+        update tb_channel
+        <set>
+            <if test="vmId != null">vm_id = #{vmId},</if>
+            <if test="skuId != null">sku_id = #{skuId},</if>
+            <if test="channelCode != null and channelCode != ''">channel_code = #{channelCode},</if>
+            <if test="maxCapacity != null">max_capacity = #{maxCapacity},</if>
+            <if test="stock != null">stock = #{stock},</if>
+            <if test="threshold != null">threshold = #{threshold},</if>
+            <if test="taskId != null">task_id = #{taskId},</if>
+            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+            update_time = sysdate()
+        </set>
+        where channel_id = #{channelId}
+    </update>
+
+    <!-- ★ 阶段 3 建单用：只改 task_id 这一个字段（2 个参数，靠 @Param 取名） -->
+    <update id="updateChannelTaskId">
+        update tb_channel
+        set task_id = #{taskId}, update_time = sysdate()
+        where channel_id = #{channelId}
+    </update>
+
+    <!-- 批量删除：拼成 in (1,2,3) -->
+    <delete id="delete" parameterType="Long">
+        delete from tb_channel where channel_id in
+        <foreach collection="array" item="channelId" open="(" separator="," close=")">
+            #{channelId}
+        </foreach>
+    </delete>
+
+</mapper>

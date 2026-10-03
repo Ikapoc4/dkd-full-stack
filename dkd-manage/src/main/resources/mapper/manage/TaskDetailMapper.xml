@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dkd.manage.mapper.TaskDetailMapper">
+
+    <!-- 数据库列 → Java 字段 的对照表
+         注意：tb_task_detail 表里【没有】 create_by / update_by 等公共列，所以这里也没有 -->
+    <resultMap type="TaskDetail" id="TaskDetailResult">
+        <id     property="detailId"  column="detail_id"  />
+        <result property="taskId"    column="task_id"    />
+        <result property="channelId" column="channel_id" />
+        <result property="expectNum" column="expect_num" />
+        <result property="realNum"   column="real_num"   />
+    </resultMap>
+
+    <!-- 公共查询列，抽出来复用 -->
+    <sql id="selectTaskDetailVo">
+        select detail_id, task_id, channel_id, expect_num, real_num
+        from tb_task_detail
+    </sql>
+
+    <!-- 列表：TaskDetailMapper.findAllTaskDetail() 没有参数，所以这里不加动态条件 -->
+    <select id="findAllTaskDetail" resultMap="TaskDetailResult">
+        <include refid="selectTaskDetailVo"/>
+        order by detail_id desc
+    </select>
+
+    <!-- 按主键查一条 -->
+    <select id="findTaskDetailById" parameterType="Long" resultMap="TaskDetailResult">
+        <include refid="selectTaskDetailVo"/>
+        where detail_id = #{detailId}
+    </select>
+
+    <!-- 新增明细
+         这张表没有 create_time 这种"永远都有"的列，所以不能用 <if> 拼列 ——
+         万一字段全是 null，会拼出 insert into tb_task_detail() values() 这种非法 SQL。
+         改用 <trim>，靠 task_id / channel_id 这两个 NOT NULL 列兜底。
+         useGeneratedKeys 把自增主键回填到 taskDetail.detailId -->
+    <insert id="add" parameterType="TaskDetail" useGeneratedKeys="true" keyProperty="detailId">
+        insert into tb_task_detail
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            task_id,
+            channel_id,
+            <if test="expectNum != null">expect_num,</if>
+            <if test="realNum != null">real_num,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            #{taskId},
+            #{channelId},
+            <if test="expectNum != null">#{expectNum},</if>
+            <if test="realNum != null">#{realNum},</if>
+        </trim>
+    </insert>
+
+    <!-- 修改：<set> 会自动去掉多余的逗号 -->
+    <update id="update" parameterType="TaskDetail">
+        update tb_task_detail
+        <set>
+            <if test="taskId != null">task_id = #{taskId},</if>
+            <if test="channelId != null">channel_id = #{channelId},</if>
+            <if test="expectNum != null">expect_num = #{expectNum},</if>
+            <if test="realNum != null">real_num = #{realNum},</if>
+        </set>
+        where detail_id = #{detailId}
+    </update>
+
+    <!-- 批量删除：拼成 in (1,2,3) -->
+    <delete id="delete" parameterType="Long">
+        delete from tb_task_detail where detail_id in
+        <foreach collection="array" item="detailId" open="(" separator="," close=")">
+            #{detailId}
+        </foreach>
+    </delete>
+
+</mapper>

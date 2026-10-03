@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dkd.manage.mapper.NodeMapper">
+
+    <!-- ① 数据库列 → Java 字段 的对照表 -->
+    <resultMap type="Node" id="NodeResult">
+        <id     property="nodeId"     column="node_id"     />
+        <result property="nodeName"   column="node_name"   />
+        <result property="address"    column="address"     />
+        <result property="regionId"   column="region_id"   />
+        <result property="regionName" column="region_name" />
+        <result property="partnerId"  column="partner_id"  />
+        <result property="status"     column="status"      />
+        <result property="createBy"   column="create_by"   />
+        <result property="createTime" column="create_time" />
+        <result property="updateBy"   column="update_by"   />
+        <result property="updateTime" column="update_time" />
+        <result property="remark"     column="remark"      />
+    </resultMap>
+
+    <!-- ② 公共的查询列，抽出来复用 -->
+    <sql id="selectNodeVo">
+        select node_id, node_name, address, region_id, region_name, partner_id, status,
+        create_by, create_time, update_by, update_time, remark
+        from tb_node
+    </sql>
+
+    <!-- ③ 列表查询：动态拼条件 -->
+    <select id="selectNodeList" parameterType="Node" resultMap="NodeResult">
+        <include refid="selectNodeVo"/>
+        <where>
+            <if test="nodeName != null and nodeName != ''">
+                and node_name like concat('%', #{nodeName}, '%')
+            </if>
+            <if test="regionId != null">
+                and region_id = #{regionId}
+            </if>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+            <if test="params.beginTime != null and params.beginTime != ''">
+                and date_format(create_time,'%y%m%d') &gt;= date_format(#{params.beginTime},'%y%m%d')
+            </if>
+            <if test="params.endTime != null and params.endTime != ''">
+                and date_format(create_time,'%y%m%d') &lt;= date_format(#{params.endTime},'%y%m%d')
+            </if>
+        </where>
+        order by node_id desc
+    </select>
+
+    <!-- ④ 按Id查一条 -->
+    <select id="selectNodeById" parameterType="Long" resultMap="NodeResult">
+        <include refid="selectNodeVo"/>
+        where node_id = #{nodeId}
+    </select>
+
+    <!-- ⑤ 新增：插入后把自增主键回填到 nodeId -->
+    <insert id="insertNode" parameterType="Node" useGeneratedKeys="true" keyProperty="nodeId">
+        insert into tb_node(
+        <if test="nodeName != null and nodeName != ''">node_name,</if>
+        <if test="address != null">address,</if>
+        <if test="regionId != null">region_id,</if>
+        <if test="regionName != null">region_name,</if>
+        <if test="partnerId != null">partner_id,</if>
+        <if test="status != null">status,</if>
+        <if test="createBy != null and createBy != ''">create_by,</if>
+        create_time
+        )values(
+        <if test="nodeName != null and nodeName != ''">#{nodeName},</if>
+        <if test="address != null">#{address},</if>
+        <if test="regionId != null">#{regionId},</if>
+        <if test="regionName != null">#{regionName},</if>
+        <if test="partnerId != null">#{partnerId},</if>
+        <if test="status != null">#{status},</if>
+        <if test="createBy != null and createBy != ''">#{createBy},</if>
+        sysdate()
+        )
+    </insert>
+
+    <!-- ⑥ 修改 -->
+    <update id="updateNode" parameterType="Node">
+        update tb_node
+        <set>
+            <if test="nodeName != null and nodeName != ''">node_name = #{nodeName},</if>
+            <if test="address != null">address = #{address},</if>
+            <if test="regionId != null">region_id = #{regionId},</if>
+            <if test="regionName != null">region_name = #{regionName},</if>
+            <if test="partnerId != null">partner_id = #{partnerId},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+            update_time = sysdate()
+        </set>
+        where node_id = #{nodeId}
+    </update>
+
+    <!-- ⑦ 删除一条 -->
+    <delete id="deleteNodeById" parameterType="Long">
+        delete from tb_node where node_id = #{nodeId}
+    </delete>
+
+    <!-- ⑧ 批量删除：拼成 in (1,2,3) -->
+    <delete id="deleteNodeByIds" parameterType="Long">
+        delete from tb_node where node_id in
+        <foreach collection="array" item="nodeId" open="(" separator="," close=")">
+            #{nodeId}
+        </foreach>
+    </delete>
+
+</mapper>

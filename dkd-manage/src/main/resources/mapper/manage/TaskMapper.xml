@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dkd.manage.mapper.TaskMapper">
+
+    <!-- 数据库列 → Java 字段 的对照表 -->
+    <resultMap type="Task" id="TaskResult">
+        <id     property="taskId"       column="task_id"        />
+        <result property="taskType"     column="task_type"      />
+        <result property="taskStatus"   column="task_status"    />
+        <result property="nodeId"       column="node_id"        />
+        <result property="vmId"         column="vm_id"          />
+        <result property="createUserId" column="create_user_id" />
+        <result property="assignUserId" column="assign_user_id" />
+        <result property="taskDesc"     column="task_desc"      />
+        <result property="createBy"     column="create_by"      />
+        <result property="createTime"   column="create_time"    />
+        <result property="updateBy"     column="update_by"      />
+        <result property="updateTime"   column="update_time"    />
+        <result property="remark"       column="remark"         />
+    </resultMap>
+
+    <!-- 公共查询列，抽出来复用 -->
+    <sql id="selectTaskVo">
+        select task_id, task_type, task_status, node_id, vm_id,
+               create_user_id, assign_user_id, task_desc,
+               create_by, create_time, update_by, update_time, remark
+        from tb_task
+    </sql>
+
+    <!-- 列表：TaskMapper.findAllTask() 没有参数，所以这里不加动态条件 -->
+    <select id="findAllTask" resultMap="TaskResult">
+        <include refid="selectTaskVo"/>
+        order by task_id desc
+    </select>
+
+    <!-- 按主键查一条 -->
+    <select id="findTaskById" parameterType="Long" resultMap="TaskResult">
+        <include refid="selectTaskVo"/>
+        where task_id = #{taskId}
+    </select>
+
+    <!-- ★★★ 新增工单 —— useGeneratedKeys 会在插入后把自增主键回填到 task.taskId
+         阶段 3 的建单逻辑靠这一句才能拿到新工单的 id 去建明细 ★★★ -->
+    <insert id="add" parameterType="Task" useGeneratedKeys="true" keyProperty="taskId">
+        insert into tb_task(
+            <if test="taskType != null">task_type,</if>
+            <if test="taskStatus != null">task_status,</if>
+            <if test="nodeId != null">node_id,</if>
+            <if test="vmId != null">vm_id,</if>
+            <if test="createUserId != null">create_user_id,</if>
+            <if test="assignUserId != null">assign_user_id,</if>
+            <if test="taskDesc != null and taskDesc != ''">task_desc,</if>
+            <if test="createBy != null and createBy != ''">create_by,</if>
+            create_time
+        )values(
+            <if test="taskType != null">#{taskType},</if>
+            <if test="taskStatus != null">#{taskStatus},</if>
+            <if test="nodeId != null">#{nodeId},</if>
+            <if test="vmId != null">#{vmId},</if>
+            <if test="createUserId != null">#{createUserId},</if>
+            <if test="assignUserId != null">#{assignUserId},</if>
+            <if test="taskDesc != null and taskDesc != ''">#{taskDesc},</if>
+            <if test="createBy != null and createBy != ''">#{createBy},</if>
+            sysdate()
+        )
+    </insert>
+
+    <!-- 修改：<set> 会自动去掉多余的逗号 -->
+    <update id="update" parameterType="Task">
+        update tb_task
+        <set>
+            <if test="taskType != null">task_type = #{taskType},</if>
+            <if test="taskStatus != null">task_status = #{taskStatus},</if>
+            <if test="nodeId != null">node_id = #{nodeId},</if>
+            <if test="vmId != null">vm_id = #{vmId},</if>
+            <if test="createUserId != null">create_user_id = #{createUserId},</if>
+            <if test="assignUserId != null">assign_user_id = #{assignUserId},</if>
+            <if test="taskDesc != null and taskDesc != ''">task_desc = #{taskDesc},</if>
+            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+            update_time = sysdate()
+        </set>
+        where task_id = #{taskId}
+    </update>
+
+    <!-- 批量删除：拼成 in (1,2,3) -->
+    <delete id="delete" parameterType="Long">
+        delete from tb_task where task_id in
+        <foreach collection="array" item="taskId" open="(" separator="," close=")">
+            #{taskId}
+        </foreach>
+    </delete>
+
+</mapper>
