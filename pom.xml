@@ -30,6 +30,8 @@
         <poi.version>4.1.2</poi.version>
         <velocity.version>2.3</velocity.version>
         <jwt.version>0.9.1</jwt.version>
+        <!-- XXL-Job 执行器版本。★ 必须用 2.x：3.x 起要求 JDK17，本项目是 JDK8 -->
+        <xxl-job.version>2.5.0</xxl-job.version>
     </properties>
 
     <!-- 依赖声明 -->
@@ -177,6 +179,13 @@
                 <groupId>com.dkd</groupId>
                 <artifactId>dkd-manage</artifactId>
                 <version>${dkd.version}</version>
+            </dependency>
+
+            <!-- XXL-Job 执行器 -->
+            <dependency>
+                <groupId>com.xuxueli</groupId>
+                <artifactId>xxl-job-core</artifactId>
+                <version>${xxl-job.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
