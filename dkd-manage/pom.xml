@@ -22,12 +22,6 @@
             <groupId>com.dkd</groupId>
             <artifactId>dkd-framework</artifactId>
         </dependency>
-
-        <!-- XXL-Job 执行器：让本模块（也就是整个项目）能被调度中心调用 -->
-        <dependency>
-            <groupId>com.xuxueli</groupId>
-            <artifactId>xxl-job-core</artifactId>
-        </dependency>
     </dependencies>
 
 </project>

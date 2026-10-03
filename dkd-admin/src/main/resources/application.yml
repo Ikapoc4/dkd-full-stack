@@ -127,35 +127,3 @@ xss:
   excludes: /system/notice
   # 匹配链接
   urlPatterns: /system/*,/monitor/*,/tool/*
-
-# ==========================================================
-# XXL-Job 执行器配置
-# ----------------------------------------------------------
-# 整个项目扮演两个角色：
-#   ① Web 服务（8080）—— 给人用的后台
-#   ② XXL-Job 执行器（9999）—— 给调度中心调用的"工人"
-# 这两个端口是两个独立的东西，别搞混。
-# ==========================================================
-xxl:
-  job:
-    admin:
-      # ★ 调度中心地址（就是你部署的 xxl-job-admin）
-      #   多个地址用逗号分隔；部署在哪台机器就填哪台的 IP
-      addresses: http://127.0.0.1:8081/xxl-job-admin
-    # ★ 访问令牌，必须和调度中心 xxl-job-admin 的 xxl.job.accessToken 一致
-    #   默认值 default_token；不一致会报 "The access token is wrong"
-    accessToken: default_token
-    executor:
-      # ★ 执行器名称，必须和调度中心页面上「执行器管理」里新增的 AppName 一致
-      appname: dkd-manage-executor
-      # 执行器注册地址（留空 '' 表示自动获取；一般不用填）
-      address: ''
-      # 执行器注册 IP（留空 '' 表示自动获取；多网卡时可能要手动指定）
-      ip: ''
-      # ★ 执行器端口（Netty 端口，不是 Tomcat 的 8080）
-      #   多实例部署时，每个实例的 port 必须不同（8081 被调度中心占了，所以用 9999）
-      port: 9999
-      # 执行日志存放路径（调度中心页面上能点开看的详细日志）
-      logpath: ./logs/xxl-job/jobhandler
-      # 执行日志保留天数
-      logretentiondays: 30
